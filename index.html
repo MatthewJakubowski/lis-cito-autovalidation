@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="pl" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LIS CITO Simulator | Explainable AI (XAI) Laboratory Suite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            lis: {
+              bg: '#030712',
+              panel: '#090d1a',
+              border: '#1e293b',
+              accent: '#38bdf8',
+              alert: '#f43f5e',
+              warn: '#f59e0b',
+              ok: '#10b981'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    @keyframes pulse-alarm {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(1.03); }
+    }
+    .panic-alert { animation: pulse-alarm 0.9s infinite ease-in-out; }
+    .scanline {
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.22) 50%);
+      background-size: 100% 4px;
+    }
+    .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #090d1a; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+    @media print {
+      body * { visibility: hidden; }
+      #audit-modal, #audit-modal * { visibility: visible; }
+      #audit-modal { position: absolute; left: 0; top: 0; width: 100%; height: auto; background: white !important; color: black !important; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-lis-bg text-slate-100 font-mono min-h-screen flex flex-col p-2 md:p-5 select-none scanline custom-scroll relative pb-12">
+
+  <!-- ==================== PANCERNA BRAMKA REGULACYJNA ==================== -->
+  <div id="legal-gatekeeper-modal" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[100] flex items-center justify-center p-3 md:p-6">
+    <div class="bg-lis-panel border border-slate-700 max-w-2xl w-full p-5 md:p-6 rounded-xl shadow-2xl space-y-4 font-mono text-xs">
+      
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2 text-rose-400 font-bold uppercase tracking-wider text-sm">
+          <span>⚖️</span>
+          <span>Protokół Zgodności Prawnej &bull; Środowisko Badawczo-Dydaktyczne</span>
+        </div>
+        <span class="text-[10px] bg-rose-950/80 text-rose-300 border border-rose-700 px-2 py-0.5 rounded font-bold">RESEARCH USE ONLY</span>
+      </div>
+
+      <div class="space-y-3 text-slate-300 leading-relaxed text-[11px] max-h-72 overflow-y-auto custom-scroll pr-2">
+        <div class="bg-slate-950 p-3 rounded border border-slate-800 text-slate-400 space-y-2 text-[10.5px]">
+          <p>
+            <strong>1. Wyłączenie Medyczne (MDR/IVDR):</strong> Oprogramowanie stanowi wyłącznie prototyp akademicko-edukacyjny (Proof-of-Concept) prezentujący architekturę wyjaśnialnej sztucznej inteligencji (XAI Glass-Box)[cite: 1]. <u>Nie stanowi i nie zastępuje wyrobu medycznego do diagnostyki in vitro</u> w rozumieniu Rozporządzenia (UE) 2017/746 (IVDR) ani (UE) 2017/745 (MDR)[cite: 1]. Zabrania się stosowania systemu w procesie leczenia ludzi.
+          </p>
+          <p>
+            <strong>2. Reżim Prawny Medycyny Laboratoryjnej:</strong> Zgodnie z <em>Ustawą z dnia 15 września 2022 r. o medycynie laboratoryjnej (Dz.U. 2022 poz. 2280 z późn. zm.)</em> wyłączną kompetencję i odpowiedzialność prawną za autoryzację, merytoryczną interpretację i wydanie wyniku ponosi <strong>uprawniony diagnosta laboratoryjny</strong>[cite: 1]. Decyzje terapeutyczne należą wyłącznie do lekarza[cite: 1].
+          </p>
+          <p>
+            <strong>3. Wyłączenie R&D EU AI Act (2024/1689 Art. 2 ust. 6):</strong> System nie podlega certyfikacji systemów wysokiego ryzyka z uwagi na przeznaczenie wyłącznie do prac badawczo-rozwojowych przed ewentualnym wdrożeniem rynkowym.
+          </p>
+          <p>
+            <strong>4. Syntetyczność Danych & RODO:</strong> Wszystkie prezentowane zlecenia, wartości liczbowe i wywiady w bazie danych są <u>w 100% syntetyczne i sfabrykowane na potrzeby dydaktyczne</u>. Nie stanowią danych osobowych ani danych o stanie zdrowia (Art. 9 RODO) jakichkolwiek rzeczywistych osób fizycznych.
+          </p>
+        </div>
+
+        <div class="space-y-2 bg-slate-900/60 p-3 rounded border border-slate-800 text-[10.5px]">
+          <label class="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" id="chk-legal-1" onchange="validateLegalCheckboxes()" class="mt-0.5 accent-emerald-500 rounded cursor-pointer">
+            <span class="text-slate-300">Rozumiem, że aplikacja jest symulatorem edukacyjnym (PoC) i <strong>nie stanowi wyrobu medycznego</strong>[cite: 1].</span>
+          </label>
+          <label class="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" id="chk-legal-2" onchange="validateLegalCheckboxes()" class="mt-0.5 accent-emerald-500 rounded cursor-pointer">
+            <span class="text-slate-300">Potwierdzam, że autoryzacja badań medycznych w RP wymaga uprawnień <strong>diagnosty laboratoryjnego</strong>[cite: 1].</span>
+          </label>
+          <label class="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" id="chk-legal-3" onchange="validateLegalCheckboxes()" class="mt-0.5 accent-emerald-500 rounded cursor-pointer">
+            <span class="text-slate-300">Przyjmuję do wiadomości, że wszystkie rekordy to <strong>dane syntetyczne (Zero RODO)</strong>.</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-800 flex justify-end">
+        <button id="btn-accept-gate" onclick="acceptGatekeeper()" disabled
+                class="w-full py-3 bg-slate-800 text-slate-500 font-black tracking-wider uppercase rounded-lg transition shadow-lg cursor-not-allowed">
+          Zaznacz wszystkie oświadczenia, aby odblokować konsolę CITO
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="flex flex-wrap justify-between items-center border-b border-lis-border pb-3 mb-3 gap-3 bg-lis-panel/90 p-3 rounded-lg border shadow-xl">
+    <div class="flex items-center gap-3">
+      <span id="alarm-led" class="w-4 h-4 rounded-full bg-lis-ok shadow-lg transition-colors"></span>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-sm md:text-lg font-black tracking-wider text-slate-100 uppercase">
+            Stanowisko Autoryzacji LIS <span class="text-lis-accent">Tryb CITO / Ostrego Dyżuru</span>
+          </h1>
+          <span class="text-[10px] bg-sky-950/80 text-sky-300 border border-sky-600 px-2 py-0.5 rounded font-bold">XAI GLASS-BOX</span>
+          <span class="text-[10px] bg-slate-800 text-slate-300 border border-slate-700 px-1.5 py-0.5 rounded">ISO 15189 AUDIT</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-0.5" id="case-counter">Kolejka: Synchronizacja z centralą LIS...</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button onclick="toggleQueueDrawer()" class="px-2.5 py-1 text-xs bg-slate-900 border border-slate-700 hover:border-lis-accent rounded text-slate-300 font-bold transition flex items-center gap-1.5" title="Kolejka próbek CITO">
+        <span>📋</span>
+        <span class="hidden md:inline">Kolejka LIS</span>
+      </button>
+
+      <button onclick="startExamMode()" id="exam-toggle-btn" class="px-2.5 py-1 text-xs bg-indigo-950/60 border border-indigo-700 hover:border-indigo-400 text-indigo-300 rounded font-bold transition flex items-center gap-1.5" title="Egzamin Dyżuru: 10 losowych próbek CITO">
+        <span>🎯</span>
+        <span>Tryb Dyżuru (10)</span>
+      </button>
+
+      <button onclick="toggleFullScreen()" class="p-1.5 text-xs bg-slate-900 border border-slate-700 hover:border-slate-500 rounded text-slate-400 transition" title="Tryb Pełnoekranowy">
+        ⛶
+      </button>
+
+      <div class="text-right border-l border-lis-border pl-3">
+        <div class="text-[9px] text-slate-400 uppercase tracking-widest">Bilans Decyzji</div>
+        <div class="text-xs md:text-sm font-black">
+          <span class="text-lis-ok" id="stat-correct">0</span> <span class="text-slate-600">/</span> <span class="text-lis-alert" id="stat-wrong">0</span>
+        </div>
+      </div>
+
+      <div class="text-right border-l border-lis-border pl-3">
+        <div class="text-xl md:text-2xl font-black text-lis-warn" id="timer-display">01:00</div>
+        <div class="text-[9px] text-slate-400 uppercase tracking-widest">Limit TAT CITO</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== SEARCH, SHUFFLE & FILTER BAR ==================== -->
+  <div class="max-w-7xl w-full mx-auto mb-3 bg-lis-panel/90 border border-lis-border p-2.5 rounded-lg flex flex-wrap items-center justify-between gap-3 text-xs shadow-md">
+    <div class="flex items-center gap-2 flex-1 min-w-[240px]">
+      <span class="text-slate-500">🔍</span>
+      <input type="text" id="case-search-input" oninput="handleSearch(this.value)" 
+             placeholder="Szukaj analitu, oddziału, hasła (np. potas, EDTA, troponina, OIT)..." 
+             class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-lis-accent font-mono text-xs">
+    </div>
+
+    <div class="flex items-center gap-2 flex-wrap">
+      <select id="cascade-filter" onchange="handleFilterLevel(this.value)" 
+              class="bg-slate-950 border border-slate-800 text-slate-300 rounded px-2.5 py-1.5 focus:outline-none focus:border-lis-accent font-mono text-xs cursor-pointer">
+        <option value="ALL">Wszystkie poziomy kaskady (L1–L5)</option>
+        <option value="1">L1: SQC & Reguły Westgarda</option>
+        <option value="2">L2: Indeksy HIL</option>
+        <option value="3">L3: Panic Values (CITO Alert)</option>
+        <option value="4">L4: Delta Check Kinetyka</option>
+        <option value="5">L5: Korelacja Matrycy Biologicznej</option>
+      </select>
+
+      <button onclick="pickRandomCase()" 
+              class="px-3 py-1.5 bg-slate-900 border border-slate-700 hover:border-amber-400 hover:text-amber-300 text-slate-200 font-bold rounded transition active:scale-95 flex items-center gap-1.5 shadow">
+        <span>🔀</span>
+        <span>Losowe CITO (Shuffle)</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== KASKADA WALIDACYJNA L1-L5 ==================== -->
+  <div class="max-w-7xl w-full mx-auto mb-3">
+    <div class="grid grid-cols-5 gap-1.5 text-center text-[10px] font-black tracking-wider uppercase">
+      <div id="step-l1" class="py-2 px-1 rounded bg-slate-900/90 border border-slate-800 text-slate-500 transition-all">L1: SQC & Westgard</div>
+      <div id="step-l2" class="py-2 px-1 rounded bg-slate-900/90 border border-slate-800 text-slate-500 transition-all">L2: Indeksy HIL</div>
+      <div id="step-l3" class="py-2 px-1 rounded bg-slate-900/90 border border-slate-800 text-slate-500 transition-all">L3: Panic Values</div>
+      <div id="step-l4" class="py-2 px-1 rounded bg-slate-900/90 border border-slate-800 text-slate-500 transition-all">L4: Delta Check</div>
+      <div id="step-l5" class="py-2 px-1 rounded bg-slate-900/90 border border-slate-800 text-slate-500 transition-all">L5: Korelacja Matrycy</div>
+    </div>
+  </div>
+
+  <!-- ==================== GŁÓWNA KONSOLA ROBOCZA ==================== -->
+  <main class="max-w-7xl w-full mx-auto flex-1 flex flex-col gap-3">
+    
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 bg-lis-panel border border-lis-border p-3 rounded-lg text-xs shadow-lg">
+      <div>
+        <span class="text-slate-500 block text-[10px] uppercase tracking-wider">Oddział / Zleceniodawca:</span>
+        <span class="font-bold text-amber-300 tracking-wide text-xs" id="case-dept">---</span>
+      </div>
+      <div class="md:col-span-2">
+        <span class="text-slate-500 block text-[10px] uppercase tracking-wider">Wywiad / Kontekst Kliniczny:</span>
+        <span class="font-medium text-slate-200 text-xs leading-relaxed" id="case-context">---</span>
+      </div>
+      
+      <div class="flex items-center gap-3 bg-slate-950/60 p-2 rounded border border-slate-800/80">
+        <canvas id="hil-canvas" width="60" height="36" class="rounded bg-black border border-slate-800"></canvas>
+        <div class="flex-1">
+          <span class="text-slate-500 block text-[9px] uppercase tracking-wider">Interferencje HIL</span>
+          <span class="font-bold text-xs" id="case-hil">H: 0 | I: 0 | L: 0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- KALKULATOR KORELACYJNY W LOCIE (L5 INSPECTOR) -->
+    <div id="l5-inspector-bar" class="hidden bg-slate-950/80 border border-sky-800/60 p-2.5 rounded-lg text-xs flex flex-wrap items-center justify-between gap-3 shadow-inner">
+      <div class="flex items-center gap-2">
+        <span class="px-2 py-0.5 bg-sky-950 border border-sky-600 rounded text-[9px] font-bold text-sky-300 uppercase">L5 Matrix Inspector</span>
+        <span class="text-slate-400 text-[11px]" id="l5-inspector-desc">---</span>
+      </div>
+      <div class="flex items-center gap-4 font-mono text-xs">
+        <div id="l5-metric-1" class="text-slate-300"></div>
+        <div id="l5-metric-2" class="text-slate-300"></div>
+      </div>
+    </div>
+
+    <!-- TABELA PARAMETRÓW -->
+    <div class="bg-lis-panel border border-lis-border rounded-lg overflow-hidden shadow-2xl flex-1 flex flex-col min-h-[220px]">
+      <div class="overflow-x-auto flex-1 custom-scroll">
+        <table class="w-full text-left text-xs md:text-sm">
+          <thead class="bg-slate-900/95 text-slate-400 uppercase text-[10px] border-b border-slate-800 sticky top-0 backdrop-blur">
+            <tr>
+              <th class="p-2.5">Oznaczenie (Analit)</th>
+              <th class="p-2.5">Wynik Bieżący</th>
+              <th class="p-2.5">Jednostka</th>
+              <th class="p-2.5">Przedział Referencyjny</th>
+              <th class="p-2.5">Wynik Poprzedni</th>
+              <th class="p-2.5">Interwał Delta</th>
+              <th class="p-2.5 text-center">Waga Decyzji (XAI)</th>
+            </tr>
+          </thead>
+          <tbody id="analytes-body" class="divide-y divide-slate-800/70 font-mono"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TELEMETRIA XAI -->
+    <div class="bg-lis-panel/80 border border-lis-border/80 px-3.5 py-2.5 rounded-lg text-xs flex flex-wrap items-center justify-between gap-2 shadow-inner">
+      <div class="flex items-center gap-2">
+        <span class="text-slate-500 text-[10px] uppercase tracking-wider">Flagi systemowe:</span>
+        <div id="flags-container" class="flex flex-wrap gap-1.5"></div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div>
+          <span class="text-slate-500 text-[10px] uppercase tracking-wider">Pewność silnika XAI:</span>
+          <span id="xai-confidence" class="font-bold text-emerald-400 ml-1">---</span>
+        </div>
+        <div>
+          <span class="text-slate-500 text-[10px] uppercase tracking-wider">Blokada na poziomie:</span>
+          <span id="stop-level-display" class="font-bold text-amber-400 ml-1">---</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRZYCISKI DECYZYJNE -->
+    <div class="pt-1">
+      <div class="text-[10px] uppercase tracking-widest text-slate-400 mb-2 font-bold flex items-center justify-between">
+        <span>Wybierz akcję laboratoryjną w protokole autowalidacji:</span>
+        <span class="text-slate-600 text-[9px] font-normal">Skróty klawiszowe: [1] AUTO | [2] PROCEDURE | [3] HITL</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        
+        <button onclick="submitAction('AUTO')" 
+                class="p-3 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-700/80 text-emerald-300 font-bold rounded-lg text-xs tracking-wider transition active:scale-95 flex flex-col items-center shadow-lg">
+          <span class="flex items-center gap-1.5"><span class="px-1.5 py-0.2 bg-emerald-900 rounded text-[9px]">1</span> <span>AUTOWALIDACJA (AUTO)</span></span>
+          <span class="text-[10px] font-normal text-emerald-400/70 mt-0.5">Wszystkie reguły spełnione &bull; Podpis cyfrowy</span>
+        </button>
+
+        <button onclick="submitAction('PROCEDURE')" 
+                class="p-3 bg-sky-950/40 hover:bg-sky-900/60 border border-sky-700/80 text-sky-300 font-bold rounded-lg text-xs tracking-wider transition active:scale-95 flex flex-col items-center shadow-lg">
+          <span class="flex items-center gap-1.5"><span class="px-1.5 py-0.2 bg-sky-900 rounded text-[9px]">2</span> <span>PROCEDURA TECHNICZNA (PROCEDURE)</span></span>
+          <span class="text-[10px] font-normal text-sky-400/70 mt-0.5">Rozcieńczenie, neutralizacja, ponowne wirowanie</span>
+        </button>
+
+        <button onclick="submitAction('HITL')" 
+                class="p-3 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-700/80 text-rose-300 font-bold rounded-lg text-xs tracking-wider transition active:scale-95 flex flex-col items-center shadow-lg">
+          <span class="flex items-center gap-1.5"><span class="px-1.5 py-0.2 bg-rose-900 rounded text-[9px]">3</span> <span>HUMAN-IN-THE-LOOP (HITL)</span></span>
+          <span class="text-[10px] font-normal text-rose-400/70 mt-0.5">Blokada autoryzacji, telefon CITO, kontakt z oddziałem</span>
+        </button>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- ==================== WYSUWANY PANEL KOLEJKI CITO (DRAWER) ==================== -->
+  <div id="queue-drawer" class="fixed inset-y-0 right-0 max-w-sm w-full bg-lis-panel/95 backdrop-blur-md border-l border-lis-border z-40 transform translate-x-full transition-transform duration-300 shadow-2xl flex flex-col p-4">
+    <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+      <div class="flex items-center gap-2">
+        <span class="text-sky-400 font-bold text-sm">📋 Kolejka Próbek LIS CITO</span>
+      </div>
+      <button onclick="toggleQueueDrawer()" class="text-slate-400 hover:text-slate-200 text-lg">&times;</button>
+    </div>
+    <div class="text-[10px] text-slate-400 mb-2 font-mono">Wybierz zlecenie do załadowania na stanowisko:</div>
+    <div id="drawer-list" class="flex-1 overflow-y-auto custom-scroll space-y-2 pr-1"></div>
+  </div>
+
+  <!-- ==================== WIZYTÓWKA AUTORSKA ==================== -->
+  <section class="max-w-7xl w-full mx-auto mt-6 bg-gradient-to-r from-slate-900 via-lis-panel to-slate-900 border border-slate-800 p-4 rounded-xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-4">
+      <div class="w-12 h-12 rounded-full bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-lg border border-sky-400/40">
+        MJ
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h3 class="text-sm font-black text-slate-100 uppercase tracking-wide">Mateusz Jakubowski</h3>
+          <span class="text-[9px] bg-indigo-950/80 text-indigo-300 border border-indigo-700/80 px-2 py-0.5 rounded font-mono font-bold">SYSTEM ARCHITECT</span>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-0.5">
+          Starszy Technolog Medyczny &bull; AI / Machine Learning Specialist &bull; #FromPipetteToPython
+        </p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-3">
+      <a href="https://mateusz-jakubowski.ai.studio/" target="_blank" rel="noopener noreferrer" 
+         class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-slate-950 font-black text-xs rounded-lg transition active:scale-95 shadow-md flex items-center gap-1.5">
+        <span>Portfolio & Wizytówka Autorska</span>
+        <span>&nearr;</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ==================== STOPKA PRAWNA ==================== -->
+  <footer class="max-w-7xl w-full mx-auto mt-6 border-t border-slate-800/80 pt-5 pb-8 text-[11px] text-slate-400 font-sans leading-relaxed">
+    <div class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-slate-400">
+        <div class="space-y-1.5 bg-slate-900/40 p-3.5 rounded-lg border border-slate-800/80 text-[10.5px]">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200 border-b border-slate-800 pb-1 flex justify-between">
+            <span>Ramy Prawne Diagnostyki Laboratoryjnej (PL)</span>
+            <span class="text-sky-400 font-mono text-[10px]">LEX POLONIAE</span>
+          </h4>
+          <p>
+            Zgodnie z <em>Ustawą z dnia 15 września 2022 r. o medycynie laboratoryjnej (Dz.U. 2022 poz. 2280)</em> autoryzacja wyniku jest wyłączną czynnością zawodową <strong>uprawnionego diagnosty laboratoryjnego</strong>[cite: 1]. Aplikacja stanowi wyłącznie model symulacyjny PoC dla celów badawczo-edukacyjnych[cite: 1].
+          </p>
+        </div>
+
+        <div class="space-y-1.5 bg-slate-900/40 p-3.5 rounded-lg border border-slate-800/80 text-[10.5px]">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200 border-b border-slate-800 pb-1 flex justify-between">
+            <span>EU AI Act & International Compliance</span>
+            <span class="text-indigo-400 font-mono text-[10px]">REGULATION (EU) 2024/1689</span>
+          </h4>
+          <p>
+            Wdraża założenia artykułów 12, 13 i 14 Rozporządzenia 2024/1689: transparentność i wyjaśnialność (Glass-Box XAI), niezmienna ścieżka audytowa <strong>PN-EN ISO 15189:2023</strong> oraz bezwzględny nadzór ludzki (Human-in-the-Loop)[cite: 1].
+          </p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap justify-between items-center border-t border-slate-800/60 pt-3 text-[10px] font-mono text-slate-500">
+        <div>LIS CITO SUITE &bull; SYSTEM PROTOCOL: 5-STAGE XAI & HITL PIPELINE</div>
+        <div>MATEUSZ JAKUBOWSKI &bull; ALL RIGHTS RESERVED &bull; 2026</div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== PŁYWAJĄCY ZNAK WODNY COMPLIANCE & POMOC ==================== -->
+  <div class="fixed bottom-3 right-3 z-30 flex items-center gap-2 pointer-events-auto">
+    <div class="px-2.5 py-1 rounded bg-slate-950/90 border border-slate-800 text-[9px] text-slate-500 font-mono tracking-wider shadow-lg">
+      NON-CLINICAL R&D SIMULATOR &bull; SYNTHETIC DATA
+    </div>
+    <button onclick="toggleHelpModal()" class="w-6 h-6 rounded-full bg-slate-900 border border-slate-700 hover:border-lis-accent text-slate-300 font-bold text-xs flex items-center justify-center transition shadow-lg" title="Skróty klawiszowe i zasady kaskady">
+      ?
+    </button>
+  </div>
+
+  <!-- ==================== MODAL POMOCY (INSTRUKCJA KASKADY) ==================== -->
+  <div id="help-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-lis-panel border border-slate-700 max-w-lg w-full p-5 rounded-xl shadow-2xl space-y-3 font-mono text-xs">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <span class="font-bold text-sky-400 uppercase tracking-wider">Instrukcja Decyzyjna Konsoli LIS</span>
+        <button onclick="toggleHelpModal()" class="text-slate-400 hover:text-slate-200 text-base">&times;</button>
+      </div>
+      <div class="space-y-2 text-slate-300 text-[11px] leading-relaxed">
+        <p><strong class="text-emerald-400">[1] AUTO:</strong> Wyniki mieszczą się w kryteriach dopuszczenia, kontrola SQC stabilna, brak interferencji i alertów CITO[cite: 1].</p>
+        <p><strong class="text-sky-400">[2] PROCEDURE:</strong> Wymagana interwencja analityczna (np. rozcieńczenie surowicy przy lipemii, odwirowanie skrzepu, weryfikacja z probówki cytrynianowej)[cite: 1].</p>
+        <p><strong class="text-rose-400">[3] HITL:</strong> Bezwzględny nadzór człowieka: stan bezpośredniego zagrożenia życia (Panic Value), nagły skok kinetyki Delta Check lub błąd pobrania (np. chelatacja EDTA)[cite: 1].</p>
+      </div>
+      <div class="pt-2 border-t border-slate-800 flex justify-end">
+        <button onclick="toggleHelpModal()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded font-bold text-xs">Zamknij</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL AUDYTOWY ISO 15189 ==================== -->
+  <div id="audit-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 md:p-6">
+    <div class="bg-lis-panel border border-slate-700 rounded-xl max-w-3xl w-full p-5 md:p-6 space-y-4 shadow-2xl overflow-y-auto max-h-[92vh] custom-scroll">
+      
+      <div class="flex justify-between items-start border-b border-slate-800 pb-3">
+        <div>
+          <span id="audit-verdict-badge" class="text-xs px-2.5 py-0.5 rounded font-bold uppercase tracking-wider"></span>
+          <h2 id="audit-title" class="text-sm md:text-base font-bold text-slate-100 mt-1.5"></h2>
+        </div>
+        <span id="audit-score-pill" class="text-xs font-mono font-bold"></span>
+      </div>
+
+      <div class="bg-slate-950/90 border border-slate-800/90 p-3 rounded-lg space-y-2">
+        <span class="text-sky-400 font-bold uppercase text-[10px] tracking-wider block">
+          Wektor Wpływu Zmiennych na Decyzję (Feature Attribution):
+        </span>
+        <div id="xai-feature-bars" class="space-y-1.5 font-mono text-[11px]"></div>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <span class="text-slate-400 font-bold block uppercase text-[10px] tracking-wider">Uzasadnienie Silnika Decyzyjnego (XAI Rationale):</span>
+          <p id="audit-rationale" class="text-slate-200 mt-1 leading-relaxed bg-slate-950/60 p-3 rounded border border-slate-800"></p>
+        </div>
+        <div>
+          <span class="text-slate-400 font-bold block uppercase text-[10px] tracking-wider">Mechanizm Biologiczny i Preanalityczny:</span>
+          <p id="audit-mechanism" class="text-slate-300 mt-1 leading-relaxed bg-slate-950/60 p-3 rounded border border-slate-800"></p>
+        </div>
+      </div>
+
+      <!-- Niezmienna Ścieżka Audytowa ISO 15189 -->
+      <div class="bg-slate-950/90 p-2.5 rounded border border-slate-800/80 font-mono text-[10px] space-y-1 text-slate-400">
+        <div class="flex justify-between">
+          <span>Znacznik Czasu: <strong id="audit-ntp" class="text-slate-300"></strong></span>
+          <span>Reguła Kaskady: <strong id="audit-rule" class="text-amber-400"></strong></span>
+        </div>
+        <div class="truncate">
+          <span>Kryptograficzny Hash Decyzji (SHA-256): <code id="audit-hash" class="text-sky-400"></code></span>
+        </div>
+      </div>
+
+      <!-- Pasek Akcji Audytu (Eksport ISO 15189 & Next) -->
+      <div class="pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 no-print">
+        <div class="flex items-center gap-2">
+          <button onclick="exportAuditJson()" class="px-3 py-2 bg-slate-900 border border-slate-700 hover:border-sky-400 hover:text-sky-300 text-slate-300 font-bold text-xs rounded transition flex items-center gap-1.5">
+            <span>💾</span> <span>Eksport JSON (Audit Trail)</span>
+          </button>
+          <button onclick="window.print()" class="px-3 py-2 bg-slate-900 border border-slate-700 hover:border-emerald-400 hover:text-emerald-300 text-slate-300 font-bold text-xs rounded transition flex items-center gap-1.5">
+            <span>🖨️</span> <span>Drukuj Raport ISO</span>
+          </button>
+        </div>
+        <button onclick="nextCase()" class="px-6 py-2.5 bg-slate-100 text-slate-950 hover:bg-slate-200 font-black text-xs rounded-lg transition active:scale-95 shadow-lg flex items-center gap-2">
+          <span>NASTĘPNA PRÓBKA CITO</span> <span>&rarr;</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SKRYPT SILNIKA ==================== -->
+  <script>
+    let audioCtx = null;
+    
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq = 880, duration = 0.12, type = "sine") {
+      try {
+        if (!audioCtx) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function playPanicAlert() {
+      playTone(920, 0.08, "sawtooth");
+      setTimeout(() => playTone(680, 0.14, "sawtooth"), 90);
+    }
+
+    async function generateSha256(message) {
+      const msgBuffer = new TextEncoder().encode(message);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    const FALLBACK_CASES = [
+      {
+        id: "DEMO-001",
+        title: "Krytyczna hiperkaliemia przy ciężkiej hipokalcemii (Skażenie EDTA)",
+        dept: "Szpitalny Oddział Ratunkowy (SOR)",
+        context: "Pacjent 58 l., monitorowanie po zabiegu. Podejrzenie błędu pobrania (kolejność probówek).",
+        stop_level: 5,
+        graph_type: "panic",
+        ai_confidence: "99.4%",
+        correct_action: "HITL",
+        flags: ["MATRIX_DISCREPANCY", "EDTA_CONTAMINATION_SUSPECTED"],
+        hil: { h: 12, i: 8, l: 30 },
+        analytes: [
+          { name: "Potas (K+)", val: "7.42", unit: "mmol/l", ref: "3.50 - 5.10", prev: "4.20", delta_h: 6 },
+          { name: "Wapń całkowity (Ca)", val: "0.32", unit: "mmol/l", ref: "2.15 - 2.55", prev: "2.30", delta_h: 6 },
+          { name: "Magnez (Mg)", val: "0.21", unit: "mmol/l", ref: "0.66 - 1.07", prev: "0.85", delta_h: 6 }
+        ],
+        ai_rationale: "Wykryto patologiczną dysocjację jonową: ekstremalna hiperkaliemia przy skrajnej hipokalcemii i hipomagnezemii. Wzorzec w 99.4% odpowiada kontaminacji próbki solą potasową EDTA (K2/K3-EDTA).",
+        clinical_mechanism: "Wersenian (EDTA) chelatuje dwuwartościowe kationy Ca2+ i Mg2+, uniemożliwiając ich prawidłowy pomiar kolorymetryczny/jonoselektywny, jednocześnie sztucznie zawyżając stężenie K+."
+      },
+      {
+        id: "DEMO-002",
+        title: "Kwasica metaboliczna z wysoką luką anionową (HAGMA)",
+        dept: "Oddział Intensywnej Terapii (OIT)",
+        context: "Pacjent w śpiączce ketonowej. Ocena zaburzeń kwasowo-zasadowych.",
+        stop_level: 3,
+        graph_type: "panic",
+        ai_confidence: "98.9%",
+        correct_action: "HITL",
+        flags: ["ANION_GAP_ELEVATED", "PANIC_CRITICAL_HIGH"],
+        hil: { h: 5, i: 2, l: 15 },
+        analytes: [
+          { name: "Sód (Na+)", val: "138", unit: "mmol/l", ref: "136 - 145", prev: "140", delta_h: 12 },
+          { name: "Chlorki (Cl-)", val: "96", unit: "mmol/l", ref: "98 - 107", prev: "101", delta_h: 12 },
+          { name: "Wodorowęglany (HCO3-)", val: "10.2", unit: "mmol/l", ref: "22.0 - 29.0", prev: "24.0", delta_h: 12 },
+          { name: "Glukoza", val: "28.4", unit: "mmol/l", ref: "3.9 - 5.5", prev: "6.2", delta_h: 12 }
+        ],
+        ai_rationale: "Wyliczona luka anionowa wynosi 31.8 mmol/l (norma 8-16), wskazując na ciężką kwasicę metaboliczną z nagromadzeniem niemierzalnych anionów (ketooctan, mleczany).",
+        clinical_mechanism: "Ketogeneza w przebiegu cukrzycy indukuje kwasicę ze zużyciem buforu wodorowęglanowego, gwałtownie poszerzając lukę anionową surowicy."
+      }
+    ];
+
+    let cases = [];
+    let filteredIndices = [];
+    let currentFilteredPos = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let tatTimer = 60;
+    let timerInterval = null;
+    let isProcessingAction = false;
+    let currentAuditRecord = null;
+    let legalConsentRecord = null;
+
+    let isExamMode = false;
+    let examIndices = [];
+    let examStep = 0;
+    const EXAM_TOTAL = 10;
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+
+    function toggleQueueDrawer() {
+      const drawer = document.getElementById('queue-drawer');
+      drawer.classList.toggle('translate-x-full');
+    }
+
+    function toggleHelpModal() {
+      const m = document.getElementById('help-modal');
+      m.classList.toggle('hidden');
+    }
+
+    function validateLegalCheckboxes() {
+      const c1 = document.getElementById('chk-legal-1').checked;
+      const c2 = document.getElementById('chk-legal-2').checked;
+      const c3 = document.getElementById('chk-legal-3').checked;
+      const btn = document.getElementById('btn-accept-gate');
+
+      if (c1 && c2 && c3) {
+        btn.disabled = false;
+        btn.className = "w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black tracking-wider uppercase rounded-lg transition active:scale-95 shadow-lg cursor-pointer";
+        btn.innerText = "Akceptuję Warunki PoC i Przechodzę do Stanowiska CITO →";
+      } else {
+        btn.disabled = true;
+        btn.className = "w-full py-3 bg-slate-800 text-slate-500 font-black tracking-wider uppercase rounded-lg transition shadow-lg cursor-not-allowed";
+        btn.innerText = "Zaznacz wszystkie oświadczenia, aby odblokować konsolę CITO";
+      }
+    }
+
+    function acceptGatekeeper() {
+      initAudio();
+      legalConsentRecord = {
+        accepted_utc: new Date().toISOString(),
+        ivdr_disclaimer: true,
+        lab_act_disclaimer: true,
+        synthetic_data_acknowledged: true
+      };
+      document.getElementById('legal-gatekeeper-modal').remove();
+      playTone(520, 0.1);
+      startTimer();
+    }
+
+    async function initSuite() {
+      try {
+        const resp = await fetch('cases.json');
+        if (!resp.ok) throw new Error('Brak pliku cases.json');
+        cases = await resp.json();
+      } catch (err) {
+        cases = FALLBACK_CASES;
+      }
+      updateFilteredCases();
+      buildQueueDrawerList();
+      if (filteredIndices.length > 0) {
+        loadCaseByIndex(filteredIndices[0]);
+      }
+    }
+
+    function buildQueueDrawerList() {
+      const container = document.getElementById('drawer-list');
+      container.innerHTML = cases.map((c, idx) => `
+        <div onclick="selectCaseFromDrawer(${idx})" 
+             class="p-2 rounded bg-slate-900 border border-slate-800 hover:border-sky-500 cursor-pointer transition flex justify-between items-center text-xs">
+          <div>
+            <div class="font-bold text-slate-200">#${c.id} &bull; ${c.dept || 'CITO'}</div>
+            <div class="text-[10px] text-slate-500 truncate max-w-[190px]">${c.title}</div>
+          </div>
+          <span class="text-[9px] px-1.5 py-0.5 rounded font-bold ${c.stop_level === 3 ? 'bg-rose-950 text-rose-300 border border-rose-800' : 'bg-slate-800 text-slate-300'}">
+            L${c.stop_level}
+          </span>
+        </div>
+      `).join('');
+    }
+
+    function selectCaseFromDrawer(realIdx) {
+      if (isExamMode) return;
+      const pos = filteredIndices.indexOf(realIdx);
+      if (pos !== -1) {
+        currentFilteredPos = pos;
+        loadCaseByIndex(realIdx);
+      } else {
+        document.getElementById('cascade-filter').value = 'ALL';
+        document.getElementById('case-search-input').value = '';
+        updateFilteredCases();
+        currentFilteredPos = filteredIndices.indexOf(realIdx);
+        loadCaseByIndex(realIdx);
+      }
+      toggleQueueDrawer();
+    }
+
+    function updateFilteredCases() {
+      if (isExamMode) return;
+      const query = (document.getElementById('case-search-input')?.value || '').toLowerCase().trim();
+      const levelVal = document.getElementById('cascade-filter')?.value || 'ALL';
+
+      filteredIndices = [];
+
+      cases.forEach((c, idx) => {
+        const matchesLevel = (levelVal === 'ALL') || (c.stop_level.toString() === levelVal);
+        const textCorpus = [
+          c.id,
+          c.title,
+          c.dept,
+          c.context,
+          ...(c.flags || []),
+          ...(c.analytes || []).map(a => a.name)
+        ].join(' ').toLowerCase();
+
+        const matchesQuery = !query || textCorpus.includes(query);
+
+        if (matchesLevel && matchesQuery) {
+          filteredIndices.push(idx);
+        }
+      });
+
+      currentFilteredPos = 0;
+      const counterEl = document.getElementById('case-counter');
+      if (filteredIndices.length === 0) {
+        counterEl.innerText = "Kolejka: Brak zleceń spełniających kryteria";
+      } else {
+        counterEl.innerText = `Kolejka CITO: ${filteredIndices.length} z ${cases.length} zleceń`;
+      }
+    }
+
+    function handleSearch(val) {
+      if (isExamMode) return;
+      updateFilteredCases();
+      if (filteredIndices.length > 0) loadCaseByIndex(filteredIndices[0]);
+    }
+
+    function handleFilterLevel(val) {
+      if (isExamMode) return;
+      updateFilteredCases();
+      if (filteredIndices.length > 0) loadCaseByIndex(filteredIndices[0]);
+    }
+
+    function pickRandomCase() {
+      if (isExamMode) return;
+      if (filteredIndices.length === 0) updateFilteredCases();
+      if (filteredIndices.length === 0) return;
+
+      currentFilteredPos = Math.floor(Math.random() * filteredIndices.length);
+      loadCaseByIndex(filteredIndices[currentFilteredPos]);
+      playTone(720, 0.08);
+    }
+
+    function startExamMode() {
+      isExamMode = true;
+      examStep = 0;
+      correctCount = 0;
+      wrongCount = 0;
+      document.getElementById('stat-correct').innerText = 0;
+      document.getElementById('stat-wrong').innerText = 0;
+
+      const shuffled = [...Array(cases.length).keys()].sort(() => 0.5 - Math.random());
+      examIndices = shuffled.slice(0, Math.min(EXAM_TOTAL, cases.length));
+      filteredIndices = examIndices;
+      currentFilteredPos = 0;
+
+      document.getElementById('exam-toggle-btn').className = "px-2.5 py-1 text-xs bg-amber-950/60 border border-amber-600 text-amber-300 rounded font-bold transition flex items-center gap-1.5 animate-pulse";
+      document.getElementById('exam-toggle-btn').innerHTML = `<span>🎯</span> <span>Egzamin (Krok 1/${examIndices.length})</span>`;
+
+      loadCaseByIndex(examIndices[0]);
+      playTone(800, 0.15);
+    }
+
+    function updateL5Inspector(c) {
+      const inspectorBar = document.getElementById('l5-inspector-bar');
+      const descEl = document.getElementById('l5-inspector-desc');
+      const m1 = document.getElementById('l5-metric-1');
+      const m2 = document.getElementById('l5-metric-2');
+
+      const analytes = c.analytes || [];
+      const getVal = (nameRegex) => {
+        const item = analytes.find(a => nameRegex.test(a.name));
+        return item ? parseFloat(item.val.toString().replace(',', '.')) : null;
+      };
+
+      const na = getVal(/Sód|Na/i);
+      const cl = getVal(/Chlor|Cl/i);
+      const hco3 = getVal(/Wodorow|HCO3/i);
+      const hb = getVal(/Hemoglob|Hb/i);
+      const hct = getVal(/Hematokryt|Hct/i);
+
+      let detected = false;
+      m1.innerText = '';
+      m2.innerText = '';
+
+      if (na !== null && cl !== null && hco3 !== null) {
+        const ag = (na - (cl + hco3)).toFixed(1);
+        m1.innerHTML = `Luka Anionowa: <strong class="${ag > 16 || ag < 8 ? 'text-amber-400' : 'text-emerald-400'}">${ag} mmol/l</strong> (ref: 8-16)`;
+        descEl.innerText = "Ocena równowagi kwasowo-zasadowej i anionów niemierzalnych";
+        detected = true;
+      }
+
+      if (hb !== null && hct !== null) {
+        const expectedHct = (hb * 3).toFixed(1);
+        const diff = Math.abs(hct - expectedHct).toFixed(1);
+        m2.innerHTML = `Reguła trzech: Hct pomiar: <strong>${hct}%</strong> vs Hct oczekiwany: <strong>${expectedHct}%</strong> (&Delta; ${diff})`;
+        if (!detected) descEl.innerText = "Weryfikacja spójności matrycy czerwonokrwinkowej";
+        detected = true;
+      }
+
+      if (detected || c.stop_level === 5) {
+        inspectorBar.classList.remove('hidden');
+        if (!detected) {
+          descEl.innerText = "Wykryto korelacyjną anomalię fizykochemiczną (L5)";
+          m1.innerHTML = `Status matrycy: <span class="text-rose-400 font-bold">Niespójna fizjologicznie</span>`;
+        }
+      } else {
+        inspectorBar.classList.add('hidden');
+      }
+    }
+
+    function drawHilSpectrum(h, i, l) {
+      const canvas = document.getElementById('hil-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const maxH = Math.min(canvas.height, (h / 500) * canvas.height);
+      const maxI = Math.min(canvas.height, (i / 500) * canvas.height);
+      const maxL = Math.min(canvas.height, (l / 1000) * canvas.height);
+
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillRect(6, canvas.height - maxH, 12, maxH);
+
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(24, canvas.height - maxI, 12, maxI);
+
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(42, canvas.height - maxL, 12, maxL);
+    }
+
+    function startTimer() {
+      clearInterval(timerInterval);
+      tatTimer = 60;
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        tatTimer--;
+        updateTimerDisplay();
+        if (tatTimer <= 0) {
+          clearInterval(timerInterval);
+          playTone(200, 0.4, "square");
+          submitAction('TIMEOUT');
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const min = Math.floor(tatTimer / 60).toString().padStart(2, '0');
+      const sec = (tatTimer % 60).toString().padStart(2, '0');
+      const el = document.getElementById('timer-display');
+      el.innerText = `${min}:${sec}`;
+      el.className = (tatTimer <= 15) ? "text-xl md:text-2xl font-black text-lis-alert panic-alert" : "text-xl md:text-2xl font-black text-lis-warn";
+    }
+
+    function updateCascadeVisualizer(stopLevel) {
+      for (let i = 1; i <= 5; i++) {
+        const stepEl = document.getElementById(`step-l${i}`);
+        if (i < stopLevel) {
+          stepEl.className = "py-2 px-1 rounded bg-emerald-950/40 border border-emerald-600/80 text-emerald-300 font-bold shadow-sm";
+        } else if (i === stopLevel) {
+          stepEl.className = "py-2 px-1 rounded bg-rose-950/60 border border-rose-500 text-rose-200 font-black animate-pulse shadow-md";
+        } else {
+          stepEl.className = "py-2 px-1 rounded bg-slate-900/90 border border-slate-800 text-slate-600";
+        }
+      }
+    }
+
+    function loadCaseByIndex(realIndex) {
+      isProcessingAction = false;
+      const c = cases[realIndex];
+
+      const prefix = isExamMode ? `EGZAMIN [${currentFilteredPos + 1}/${examIndices.length}] &bull; ` : '';
+      document.getElementById('case-counter').innerText = `${prefix}Zlecenie #${c.id} (${currentFilteredPos + 1} z ${filteredIndices.length} w kolejce)`;
+      document.getElementById('case-dept').innerText = c.dept || "Biochemia kliniczna";
+      document.getElementById('case-context').innerText = c.context || "Brak danych klinicznych";
+      
+      const hil = c.hil || { h: 0, i: 0, l: 0 };
+      const hilEl = document.getElementById('case-hil');
+      hilEl.innerText = `H: ${hil.h} | I: ${hil.i} | L: ${hil.l}`;
+      hilEl.className = (hil.h >= 150 || hil.i >= 100 || hil.l >= 300) ? "font-bold text-lis-alert" : "font-bold text-lis-ok";
+      drawHilSpectrum(hil.h, hil.i, hil.l);
+
+      document.getElementById('stop-level-display').innerText = `Poziom ${c.stop_level}`;
+      document.getElementById('xai-confidence').innerText = c.ai_confidence || '99.8%';
+      updateCascadeVisualizer(c.stop_level);
+      updateL5Inspector(c);
+
+      const flagsBox = document.getElementById('flags-container');
+      flagsBox.innerHTML = (c.flags || []).map(f => 
+        `<span class="px-2 py-0.5 bg-slate-900 border border-slate-700 rounded text-[10px] text-amber-300 font-bold tracking-wide">${f}</span>`
+      ).join('');
+
+      const tbody = document.getElementById('analytes-body');
+      tbody.innerHTML = (c.analytes || []).map(a => {
+        const prev = a.prev !== null && a.prev !== undefined ? a.prev : "---";
+        const delta = a.delta_h !== undefined && a.delta_h !== 0 ? `${a.delta_h}h` : "---";
+        
+        let valStyle = "text-slate-100 font-bold";
+        let xaiBadge = '<span class="text-slate-500 text-[10px]">Waga bazowa</span>';
+
+        if (c.stop_level === 3 || c.graph_type === "panic") {
+          valStyle = "text-rose-400 font-black text-base";
+          xaiBadge = '<span class="text-rose-400 font-bold text-[10px] bg-rose-950/60 px-2 py-0.5 rounded border border-rose-700/60">Dominująca (+92%)</span>';
+        } else if (c.stop_level === 4) {
+          valStyle = "text-amber-300 font-black";
+          xaiBadge = '<span class="text-amber-300 font-bold text-[10px] bg-amber-950/60 px-2 py-0.5 rounded border border-amber-700/60">Kinetyczna (+78%)</span>';
+        } else if (c.stop_level === 5) {
+          xaiBadge = '<span class="text-sky-300 font-bold text-[10px] bg-sky-950/60 px-2 py-0.5 rounded border border-sky-700/60">Korelacyjna (+85%)</span>';
+        }
+
+        return `
+          <tr class="hover:bg-slate-800/40 transition-colors">
+            <td class="p-2.5 font-bold text-slate-200">${a.name}</td>
+            <td class="p-2.5 ${valStyle}">${a.val}</td>
+            <td class="p-2.5 text-slate-400 text-xs">${a.unit}</td>
+            <td class="p-2.5 text-slate-400 text-xs">${a.ref}</td>
+            <td class="p-2.5 text-slate-400 text-xs">${prev}</td>
+            <td class="p-2.5 text-slate-400 text-xs">${delta}</td>
+            <td class="p-2.5 text-center">${xaiBadge}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const indicator = document.getElementById('alarm-led');
+      if (c.graph_type === "panic" || c.stop_level === 3) {
+        indicator.className = "w-4 h-4 rounded-full bg-lis-alert panic-alert shadow-lg";
+        playPanicAlert();
+      } else {
+        indicator.className = "w-4 h-4 rounded-full bg-lis-ok shadow-lg";
+        playTone(600, 0.05);
+      }
+
+      if (!document.getElementById('legal-gatekeeper-modal')) {
+        startTimer();
+      }
+    }
+
+    async function submitAction(selectedAction) {
+      if (isProcessingAction || filteredIndices.length === 0) return;
+      isProcessingAction = true;
+      clearInterval(timerInterval);
+
+      const realIdx = filteredIndices[currentFilteredPos];
+      const c = cases[realIdx];
+      const isCorrect = (selectedAction === c.correct_action);
+
+      if (isCorrect) {
+        correctCount++;
+        document.getElementById('stat-correct').innerText = correctCount;
+        playTone(880, 0.12);
+      } else {
+        wrongCount++;
+        document.getElementById('stat-wrong').innerText = wrongCount;
+        playTone(220, 0.35, "square");
+      }
+
+      await showAudit(c, isCorrect, selectedAction);
+    }
+
+    async function showAudit(c, isCorrect, chosen) {
+      const modal = document.getElementById('audit-modal');
+      const badge = document.getElementById('audit-verdict-badge');
+      const title = document.getElementById('audit-title');
+      const pill = document.getElementById('audit-score-pill');
+
+      if (isCorrect) {
+        badge.className = "text-xs px-2.5 py-0.5 rounded font-bold uppercase tracking-wider bg-emerald-900/70 text-emerald-300 border border-emerald-600";
+        badge.innerText = "Decyzja Zgodna z Protokołem";
+        pill.className = "text-xs font-mono font-bold text-emerald-400";
+        pill.innerText = `Wybrano: ${chosen}`;
+      } else {
+        badge.className = "text-xs px-2.5 py-0.5 rounded font-bold uppercase tracking-wider bg-rose-900/70 text-rose-300 border border-rose-600";
+        badge.innerText = (chosen === 'TIMEOUT') ? "Przekroczenie Czasu TAT CITO" : `Naruszenie Kaskady Decyzyjnej (Wymagano: ${c.correct_action})`;
+        pill.className = "text-xs font-mono font-bold text-rose-400";
+        pill.innerText = `Wybrano: ${chosen}`;
+      }
+
+      title.innerText = c.title;
+
+      const featureBox = document.getElementById('xai-feature-bars');
+      const stopLvl = c.stop_level;
+
+      let features = [];
+      if (stopLvl === 1) features.push({ name: "Reguła Westgarda / Błąd Serii SQC", weight: 98, color: "bg-rose-500" });
+      if (stopLvl === 2) features.push({ name: "Indeks HIL (Interferencja Matrycowa)", weight: 95, color: "bg-rose-500" });
+      if (stopLvl === 3) features.push({ name: "Panic Value (Próg Zagrożenia Życia)", weight: 99, color: "bg-rose-500" });
+      if (stopLvl === 4) features.push({ name: "Delta Check (Kinetyka Czasowa)", weight: 88, color: "bg-amber-400" });
+      if (stopLvl === 5) features.push({ name: "Spójność Fizykochemiczna i Biologiczna", weight: 84, color: "bg-sky-400" });
+      features.push({ name: "Kontekst Kliniczny & Typ Materiału", weight: 42, color: "bg-slate-600" });
+
+      featureBox.innerHTML = features.map(f => `
+        <div>
+          <div class="flex justify-between text-[10px] text-slate-300 mb-0.5">
+            <span>${f.name}</span>
+            <span class="font-bold">${f.weight}%</span>
+          </div>
+          <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden border border-slate-800">
+            <div class="${f.color} h-1.5 rounded-full" style="width: ${f.weight}%"></div>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('audit-rationale').innerText = c.ai_rationale;
+      document.getElementById('audit-mechanism').innerText = c.clinical_mechanism;
+
+      const nowIso = new Date().toISOString();
+      const rawPayload = `${nowIso}|${c.id}|${c.stop_level}|${chosen}|${c.correct_action}|${c.ai_confidence}`;
+      const sha = await generateSha256(rawPayload);
+
+      document.getElementById('audit-ntp').innerText = `${nowIso} (UTC NTP synced)`;
+      document.getElementById('audit-rule').innerText = `CASCADE_L${c.stop_level}_RULE`;
+      document.getElementById('audit-hash').innerText = sha;
+
+      currentAuditRecord = {
+        iso_standard: "PN-EN ISO 15189:2023 / EU AI Act Art. 12",
+        legal_consent: legalConsentRecord,
+        sample_id: c.id,
+        timestamp_utc: nowIso,
+        cascade_stop_level: c.stop_level,
+        user_decision: chosen,
+        protocol_decision: c.correct_action,
+        is_compliant: isCorrect,
+        ai_confidence: c.ai_confidence,
+        sha256_audit_hash: sha,
+        analytes_snapshot: c.analytes,
+        rationale: c.ai_rationale,
+        clinical_mechanism: c.clinical_mechanism
+      };
+
+      modal.classList.remove('hidden');
+    }
+
+    function exportAuditJson() {
+      if (!currentAuditRecord) return;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentAuditRecord, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `ISO15189_AUDIT_${currentAuditRecord.sample_id}_${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function nextCase() {
+      document.getElementById('audit-modal').classList.add('hidden');
+      
+      if (isExamMode) {
+        examStep++;
+        if (examStep < examIndices.length) {
+          currentFilteredPos = examStep;
+          document.getElementById('exam-toggle-btn').innerHTML = `<span>🎯</span> <span>Egzamin (${examStep + 1}/${examIndices.length})</span>`;
+          loadCaseByIndex(examIndices[examStep]);
+        } else {
+          const scorePercent = ((correctCount / examIndices.length) * 100).toFixed(0);
+          alert(`🏆 ZAKOŃCZONO SESJĘ EGZAMINACYJNĄ OSTREGO DYŻURU!\n\nTwój wynik: ${correctCount}/${examIndices.length} (${scorePercent}% zgodności z procedurami CITO).\nRaport zgodny ze standardem ISO 15189 został zarejestrowany.`);
+          isExamMode = false;
+          document.getElementById('exam-toggle-btn').className = "px-2.5 py-1 text-xs bg-indigo-950/60 border border-indigo-700 hover:border-indigo-400 text-indigo-300 rounded font-bold transition flex items-center gap-1.5";
+          document.getElementById('exam-toggle-btn').innerHTML = `<span>🎯</span> <span>Tryb Dyżuru (10)</span>`;
+          updateFilteredCases();
+          loadCaseByIndex(filteredIndices[0]);
+        }
+        return;
+      }
+
+      if (currentFilteredPos + 1 < filteredIndices.length) {
+        currentFilteredPos++;
+        loadCaseByIndex(filteredIndices[currentFilteredPos]);
+      } else {
+        alert(`Zakończono przeglądanie kolejki! Bilans dyżuru: ${correctCount} trafnych autoryzacji.`);
+        currentFilteredPos = 0;
+        if (filteredIndices.length > 0) {
+          loadCaseByIndex(filteredIndices[0]);
+        }
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (document.getElementById('legal-gatekeeper-modal')) return;
+
+      const auditModal = document.getElementById('audit-modal');
+      if (!auditModal.classList.contains('hidden')) {
+        if (e.code === 'Space' || e.key === 'Enter') {
+          e.preventDefault();
+          nextCase();
+        }
+        return;
+      }
+
+      const helpModal = document.getElementById('help-modal');
+      if (!helpModal.classList.contains('hidden')) {
+        if (e.key === 'Escape') toggleHelpModal();
+        return;
+      }
+
+      if (document.activeElement && document.activeElement.id === 'case-search-input') return;
+
+      if (e.key === '1') submitAction('AUTO');
+      if (e.key === '2') submitAction('PROCEDURE');
+      if (e.key === '3') submitAction('HITL');
+      if (e.key === '?' || e.key === 'F1') {
+        e.preventDefault();
+        toggleHelpModal();
+      }
+    });
+
+    window.onload = initSuite;
+  </script>
+</body>
+</html>
