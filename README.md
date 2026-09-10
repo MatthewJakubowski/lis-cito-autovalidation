@@ -82,3 +82,18 @@ Sercem silnika jest znormalizowana baza **250 rzeczywistych i syntetycznych scen
 ## 📄 Licencja
 
 Projekt udostępniany na zasadach otwartej licencji [MIT](LICENSE) do celów edukacyjnych, badawczych i demonstracyjnych.
+
+---
+
+## ⚖️ Klauzula Prawna i Wyłączenie Odpowiedzialności (Legal Disclaimer)
+
+> ### ⚠️ RESEARCH AND EDUCATIONAL USE ONLY &bull; NON-CLINICAL PROTOTYPE
+> 
+> Niniejsze oprogramowanie oraz towarzyszący mu zbiór danych zostały opracowane wyłącznie w celach badawczych, akademickich i demonstracyjnych (Proof-of-Concept):
+> 
+> 1. **Brak Statusu Wyrobu Medycznego (MDR / IVDR):** Aplikacja **nie stanowi wyrobu medycznego** ani wyrobu medycznego do diagnostyki *in vitro* w rozumieniu Rozporządzenia Parlamentu Europejskiego i Rady (UE) 2017/745 (MDR) oraz 2017/746 (IVDR). System nie jest przeznaczony do stosowania w bezpośredniej opiece nad pacjentem, monitorowaniu procesów leczniczych ani stawianiu diagnoz klinicznych.
+> 2. **Ustawa o Medycynie Laboratoryjnej (Dz.U. 2022 poz. 2280):** Zgodnie z polskim porządkiem prawnym wyłączną czynnością zawodową i prawną odpowiedzialność za autoryzację, interpretację i wydanie wyniku badania laboratoryjnego ponosi **uprawniony diagnosta laboratoryjny**. Aplikacja pełni rolę wyłącznie symulacyjno-poznawczą w architekturze Human-in-the-Loop.
+> 3. **Wyłączenie Prac R&D (EU AI Act 2024/1689):** Zgodnie z Art. 2 ust. 6 Rozporządzenia 2024/1689, rygory dotyczące systemów wysokiego ryzyka nie mają zastosowania do systemów AI opracowywanych i wykorzystywanych wyłącznie w celach badawczo-rozwojowych przed ewentualnym wprowadzeniem do obrotu.
+> 4. **Ochrona Danych Osobowych (RODO / GDPR):** Całość zbioru danych (`cases.json`) składa się w 100% ze **sfabrykowanych danych syntetycznych** oraz zanonimizowanych modeli parametrów biochemicznych. Baza nie zawiera danych osobowych, danych medycznych rzeczywistych osób fizycznych (Art. 9 RODO) ani unikalnych identyfikatorów pacjentów.
+> 5. **Ograniczenie Odpowiedzialności (AS-IS):** Autor oprogramowania nie ponosi jakiejkolwiek odpowiedzialności za skutki użycia kodu źródłowego, logiki symulatora lub scenariuszy testowych w warunkach innych niż dydaktyczno-naukowe.
+---
